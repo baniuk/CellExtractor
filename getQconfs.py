@@ -11,5 +11,6 @@ def scanFolder(folder):
     print("Scanning ", folder)
     if not p.isdir(folder):
         raise Exception("Not a folder")
-
-    return glob.glob(p.join(folder, "*" + ext))
+    fileList = glob.glob(p.join(folder, "*" + ext))
+    print("\tFound", len(fileList), "files")
+    return fileList
