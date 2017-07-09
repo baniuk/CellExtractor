@@ -20,6 +20,7 @@ pp = pprint.PrettyPrinter(indent=4)
 allBounds = []  # will store bounds dictionary
 allCentroids = []  # centroids in order of bounds
 allImages = []  # paths to images
+allFrameId = []  # frame indexes
 
 # folder to scan
 fileList = scanFolder(inputFolder)
@@ -28,9 +29,12 @@ fileList = scanFolder(inputFolder)
 for qconf in fileList:
     sq = ScanQconf(qconf)  # analyse qconf
     sq.getFileInfo()  # print info
-    allBounds.extend(sq.getBounds())  # collect bounds for thi file (all nakes)
-    allCentroids.extend(sq.getCentroid())  # colect centroids
-    allImages.append(sq.getImageName())  # colect images from Qconf
+    b, c, n = sq.getAll()
+    allBounds.extend(b)  # collect bounds for thi file (all nakes)
+    allCentroids.extend(c)  # colect centroids
+    allImages.extend(n)  # colect images from Qconf
+    allFrameId.extend(np.linspace(1, sq.getNumFrames(),
+                                  sq.getNumFrames(), dtype="int"))
 
 # convert bounds to array [x y width height]
 bounds = []
@@ -53,24 +57,28 @@ ranges = ranges.T  # transpose to have same orientation as med
 print(ranges)
 
 # %% Process images
-for image in allImages:
+for count, image in enumerate(allImages):
     # assumes images in the same folder as QCONF regardless path in QCONF
     absImagePath = path.join(inputFolder, path.basename(image))
     im = io.imread(absImagePath)
     # im is ordered [slices x y]
-    print("Processing", image, im.shape)
     # compute indexes
-    startx = allBounds[0]['x']
-    width = startx + allBounds[0]['width']
-    starty = allBounds[0]['y']
-    height = starty + allBounds[0]['height']
+    frame = allFrameId[count]
+    startx = allBounds[count]['x']
+    width = startx + allBounds[count]['width']
+    starty = allBounds[count]['y']
+    height = starty + allBounds[count]['height']
 
-    cutCell = im[0][starty:height, startx:width]
+    print("Processing", path.basename(image), im.shape, "frame", frame)
+    cutCell = im[frame - 1][starty:height, startx:width]
+    outFileName = path.join(
+        outputFolder, path.basename(image) + "_" + str(count) + ".png")
+    io.imsave(outFileName, cutCell)
 
-    plt.subplot(1, 2, 1)
-    plt.imshow(im[199], cmap=plt.cm.gray)
-    plt.axis('off')
-    plt.subplot(1, 2, 2)
-    plt.imshow(cutCell, cmap=plt.cm.gray)
-    plt.axis('off')
-    plt.show()
+    # plt.subplot(1, 2, 1)
+    # plt.imshow(im[199], cmap=plt.cm.gray)
+    #  plt.axis('off')
+    # plt.subplot(1, 2, 2)
+    # plt.imshow(cutCell, cmap=plt.cm.gray)
+    # plt.axis('off')
+    # plt.show()

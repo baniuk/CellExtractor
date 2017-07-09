@@ -75,6 +75,23 @@ class ScanQconf:
             c.append(sval[self.keyMap["CENTROID"]])
         return c
 
+    def getAll(self):
+        """
+        Return bounds, centroinds and imagename.
+
+        Imgage name is returned as array of size of bounds and
+        centroids to ease further access.
+
+        Returns:
+            tuple of (bounds, centroids, image name)
+
+        """
+        b = self.getBounds()
+        c = self.getCentroid()
+        n = [self.getImageName()] * len(b)
+
+        return b, c, n
+
     def __iteratreOver(self, key):
         """
         Return value for given key.
