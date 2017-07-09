@@ -1,6 +1,7 @@
 """Prepare training data."""
 
 from getQconfs import scanFolder
+from imagefitting import pad, rescale
 import pprint
 from scanqconf import ScanQconf
 import numpy as np
@@ -46,7 +47,7 @@ bounds = np.array(bounds)  # convert to numpy
 med = np.percentile(bounds[:, (2, 3)], (25, 50, 75), axis=0)
 pmed = pandas.DataFrame(
     med, columns=['Width', 'Height'], index=['25', '50', '75'])
-pmed.plot.box()
+pandas.DataFrame(bounds[:, (2, 3)]).plot.box()
 print(pmed)
 plt.show()
 
@@ -57,6 +58,10 @@ ranges = ranges.T  # transpose to have same orientation as med
 print(ranges)
 
 # %% Process images
+recWidth = pmed['Width']['75']
+recHeight = pmed['Height']['75']
+# length of edge of all images (square)
+edge = np.round(np.max([recWidth, recHeight]))
 for count, image in enumerate(allImages):
     # assumes images in the same folder as QCONF regardless path in QCONF
     absImagePath = path.join(inputFolder, path.basename(image))
@@ -69,8 +74,18 @@ for count, image in enumerate(allImages):
     starty = allBounds[count]['y']
     height = starty + allBounds[count]['height']
 
-    print("Processing", path.basename(image), im.shape, "frame", frame)
+    print("Processing", path.basename(image),
+          im.shape, "frame", frame,  sep=' ', end='', flush=True)
     cutCell = im[frame - 1][starty:height, startx:width]
+    # compare with pattern
+    if cutCell.shape > (edge, edge):
+        cutCell = rescale(cutCell, edge)
+        print("[RESCALED]", sep=' ', end='', flush=True)
+    else:
+        cutCell = pad(cutCell, edge)
+        print("[PADDED]", sep=' ', end='', flush=True)
+
+    print("")
     outFileName = path.join(
         outputFolder, path.basename(image) + "_" + str(count) + ".png")
     io.imsave(outFileName, cutCell)
