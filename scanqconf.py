@@ -27,8 +27,12 @@ class ScanQconf:
     def getFileInfo(self):
         """Print object file name and parameters."""
         print(self.fileName, "at", self.__iteratreOver(self.keyMap["QDATE"]))
-        print("Image:", self.__iteratreOver(self.keyMap["QIMAGE"]))
+        print("Image:", self.getImageName())
         print("Frames:", self.getNumFrames())
+
+    def getImageName(self):
+        """Return name of image."""
+        return self.__iteratreOver(self.keyMap["QIMAGE"])
 
     def getNumFrames(self):
         """Return number of frames."""
