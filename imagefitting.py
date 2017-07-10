@@ -37,6 +37,33 @@ def pad(image, edge):
                      'constant', constant_values=(0))
 
 
+def process(im, size, counters, edge):
+    """Process image cutting cells and adjusting size of of them.
+
+    Args:
+        im - full image to process
+        size - (startx, starty, width, height) - bounding box for cell
+        counters - {'padded': , 'rescaled'} - numbers that are increased during method call
+        edge - demanded size of output image
+
+    Returns:
+        (cell, counters)
+    """
+    # cut cell (not scaled yet, only QCONF data)
+    cutCell = im[size[1]:size[3], size[0]:size[2]]
+    # compare with demanded size
+    if cutCell.shape > (edge, edge):
+        cutCell = rescale(cutCell, edge)
+        counters["rescaled"] += 1
+        print(" [RESCALED]", sep=' ', end='', flush=True)
+    else:
+        cutCell = pad(cutCell, edge)
+        counters['padded'] += 1
+        print(" [PADDED]", sep=' ', end='', flush=True)
+    print("")
+    return cutCell, counters
+
+
 class PadTests(unittest.TestCase):
     """
     Test of pad and rescale methods.
