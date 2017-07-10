@@ -8,14 +8,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas
 from os import path
-from scipy import ndimage
-from scipy import misc
 from skimage import io
 
 # where cut images land in
-outputFolder = "c:\\Users\\baniu\\OneDrive\\CellExtractor_Test\out"
+outputFolder = "/home/baniuk/Documents/Kay-copy/FLU+DIC/out"
 # folder with QCONF and images
-inputFolder = "c:\\Users\\baniu\\OneDrive\\CellExtractor_Test"
+inputFolder = "/home/baniuk/Documents/Kay-copy/FLU+DIC"
 
 pp = pprint.PrettyPrinter(indent=4)
 allBounds = []  # will store bounds dictionary
@@ -58,7 +56,7 @@ ranges = ranges.T  # transpose to have same orientation as med
 print(ranges)
 
 # %% Process images
-recWidth = pmed['Width']['75']
+recWidth = pmed['Width']['75']  # use 75% quartile size
 recHeight = pmed['Height']['75']
 # length of edge of all images (square)
 edge = np.round(np.max([recWidth, recHeight]))
@@ -74,8 +72,7 @@ for count, image in enumerate(allImages):
     starty = allBounds[count]['y']
     height = starty + allBounds[count]['height']
 
-    print("Processing", path.basename(image),
-          im.shape, "frame", frame,  sep=' ', end='', flush=True)
+    print("Processing", path.basename(image), im.shape, "frame", frame,  sep=' ', end='', flush=True)
     cutCell = im[frame - 1][starty:height, startx:width]
     # compare with pattern
     if cutCell.shape > (edge, edge):
@@ -86,14 +83,5 @@ for count, image in enumerate(allImages):
         print("[PADDED]", sep=' ', end='', flush=True)
 
     print("")
-    outFileName = path.join(
-        outputFolder, path.basename(image) + "_" + str(count) + ".png")
+    outFileName = path.join(outputFolder, path.basename(image) + "_" + str(count) + ".png")
     io.imsave(outFileName, cutCell)
-
-    # plt.subplot(1, 2, 1)
-    # plt.imshow(im[199], cmap=plt.cm.gray)
-    #  plt.axis('off')
-    # plt.subplot(1, 2, 2)
-    # plt.imshow(cutCell, cmap=plt.cm.gray)
-    # plt.axis('off')
-    # plt.show()

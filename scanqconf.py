@@ -97,8 +97,7 @@ class ScanQconf:
         Return value for given key.
 
         Args:
-            key: List of following subkeys to reach demanded parameter.
-            Should start from root.
+            key: List of following subkeys to reach demanded parameter. Should start from root.
 
         Returns:
             Parmaeter under last provided key.
