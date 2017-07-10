@@ -57,28 +57,29 @@ def main(argv):
     # folder to scan
     fileList = scanFolder(inputFolder)
 
-    # iterate over QCONF files and extract bounds
+    # iterate over QCONF files and extract information. Produce lists of the same lengths that contain data on related
+    # indexes. Some data are simply repeated along one QCONF
     for qconf in fileList:
         sq = ScanQconf(qconf)  # analyse qconf
         sq.getFileInfo()  # print info
-        b, c, n = sq.getAll()
-        allBounds.extend(b)  # collect bounds for thi file (all nakes)
+        b, c, n = sq.getAll()  # outputs are dicts
+        allBounds.extend(b)  # collect bounds for this file (all snakes)
         allCentroids.extend(c)  # colect centroids
-        allImages.extend(n)  # colect images from Qconf
-        allFrameId.extend(np.linspace(1, sq.getNumFrames(), sq.getNumFrames(), dtype="int"))
+        allImages.extend(n)  # colect image name from Qconf (repeated for each QCONF)
+        allFrameId.extend(np.linspace(1, sq.getNumFrames(), sq.getNumFrames(), dtype="int"))  # frame range 1...N
 
     # convert bounds to array [x y width height]
     bounds = []
     for b in allBounds:
-        bounds.append([b["x"], b["y"], b["width"], b["height"]])
+        bounds.append([b["x"], b["y"], b["width"], b["height"]])  # unwrap dict
     bounds = np.array(bounds)  # convert to numpy
 
     # %% compute basic stats - 1st 2nd and 3rd quartile
-    med = np.percentile(bounds[:, (2, 3)], (25, 50, 75), axis=0)
-    pmed = pandas.DataFrame(med, columns=['Width', 'Height'], index=['25', '50', '75'])
+    med = np.percentile(bounds[:, (2, 3)], (25, 50, 75), axis=0)  # quartiles from width and height
+    pmed = pandas.DataFrame(med, columns=['Width', 'Height'], index=['25', '50', '75'])  # convert to tables
     pbounds = pandas.DataFrame(bounds[:, (2, 3)], columns=['Width', 'Height'])
-    pbounds.plot.box()
     if showPlot:
+        pbounds.plot.box()
         plt.show()
 
     # %% Compute range of data
@@ -89,7 +90,7 @@ def main(argv):
     # %% Process images
     recWidth = pmed['Width']['75']  # use 75% quartile size
     recHeight = pmed['Height']['75']
-    # length of edge of all images (square)
+    # length of edge of all images (square) - larger one among selected quartile for width and height
     edge = np.round(np.max([recWidth, recHeight]))
     rescaled = 0  # number of rescaled
     padded = 0  # number of padded
@@ -98,15 +99,15 @@ def main(argv):
         absImagePath = path.join(inputFolder, path.basename(image))
         im = io.imread(absImagePath)
         # im is ordered [slices x y]
-        # compute indexes
+        # compute indexes of bounding box from QCONF data
         frame = allFrameId[count]
         startx = allBounds[count]['x']
         width = startx + allBounds[count]['width']
         starty = allBounds[count]['y']
         height = starty + allBounds[count]['height']
         print("Processing", path.basename(image), im.shape, "frame", frame,  sep=' ', end='', flush=True)
-        cutCell = im[frame - 1][starty:height, startx:width]
-        # compare with pattern
+        cutCell = im[frame - 1][starty:height, startx:width]  # cut cell (not scaled yet, only QCONF data)
+        # compare with demanded size
         if cutCell.shape > (edge, edge):
             cutCell = rescale(cutCell, edge)
             print(" [RESCALED]", sep=' ', end='', flush=True)
