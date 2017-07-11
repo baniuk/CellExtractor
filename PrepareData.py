@@ -113,11 +113,17 @@ def main(argv):
         im = io.imread(absImagePath)  # im is ordered [slices x y]
         print("Processing", path.basename(image), im.shape, "frame", frame,  sep=' ', end='', flush=True)
         # main image processing - cutting and scalling cels
-        cutCell, xx = process(im[frame - 1], (startx, starty, width, height), counters, edge)
+        cutCell = process(im[frame - 1], (startx, starty, width, height), counters, edge)
         outFileName = path.join(outputFolder, path.basename(image) + "_" + str(count) + ".png")
         io.imsave(outFileName, cutCell)
         # optional processing of _snakemask
-
+        if processMasks:
+            absMaskPath = path.join(inputFolder, path.splitext(path.basename(image))[0] + "_snakemask.tif")
+            ma = io.imread(absMaskPath)
+            cutMask = process(ma[frame - 1], (startx, starty, width, height), None, edge)
+            outFileName = path.join(outputFolder, "mask_" + path.basename(image) + "_" + str(count) + ".png")
+            io.imsave(outFileName, cutMask)
+        print("")
     print(pmed)
     print(ranges)
     print("Selected image size: ", edge)

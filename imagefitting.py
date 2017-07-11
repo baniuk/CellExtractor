@@ -32,9 +32,7 @@ def pad(image, edge):
 
     colsup = int(numpy.round(cols / 2))
     colsdown = int(cols - colsup)
-
-    return numpy.pad(image, ((rowsup, rowsdown), (colsup, colsdown)),
-                     'constant', constant_values=(0))
+    return numpy.pad(image, ((rowsup, rowsdown), (colsup, colsdown)), 'constant', constant_values=(0))
 
 
 def process(im, size, counters, edge):
@@ -43,25 +41,28 @@ def process(im, size, counters, edge):
     Args:
         im - full image to process
         size - (startx, starty, width, height) - bounding box for cell
-        counters - {'padded': , 'rescaled'} - numbers that are increased during method call
+        counters - {'padded': , 'rescaled'} - numbers that are increased during method call. Dict is referenced.
+                    USe None if not needed.
         edge - demanded size of output image
 
     Returns:
-        (cell, counters)
+        (cell)
+
     """
     # cut cell (not scaled yet, only QCONF data)
     cutCell = im[size[1]:size[3], size[0]:size[2]]
     # compare with demanded size
     if cutCell.shape > (edge, edge):
         cutCell = rescale(cutCell, edge)
-        counters["rescaled"] += 1
+        if counters:
+            counters["rescaled"] += 1
         print(" [RESCALED]", sep=' ', end='', flush=True)
     else:
         cutCell = pad(cutCell, edge)
-        counters['padded'] += 1
+        if counters:
+            counters['padded'] += 1
         print(" [PADDED]", sep=' ', end='', flush=True)
-    print("")
-    return cutCell, counters
+    return cutCell
 
 
 class PadTests(unittest.TestCase):
