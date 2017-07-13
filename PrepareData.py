@@ -19,8 +19,9 @@ def parseProgramArgs(argv):
     outputFolder = ''
     showPlot = False
     processMasks = False
+    outSize = None
     try:
-        opts, args = getopt.getopt(argv, "hpmi:o:", ["indir=", "outdir="])
+        opts, args = getopt.getopt(argv, "hpmi:o:s:", ["indir=", "outdir=", "size="])
     except getopt.GetoptError as err:
         print("preparedata.py -i <inputfolder> -o <outputfolder>")
         print(err)
@@ -31,6 +32,7 @@ def parseProgramArgs(argv):
             print("\t -h\tShow help")
             print("\t -p\tShow size distribution")
             print("\t -m\tProcess snakemasks")
+            print("\t -s,--size=\tSize of output images")
             sys.exit()
         elif opt in ("-i", "--indir"):
             inputFolder = arg
@@ -40,18 +42,20 @@ def parseProgramArgs(argv):
             showPlot = True
         elif opt == "-m":
             processMasks = True
+        elif opt in ("-s", "--size"):
+            outSize = arg
     if not inputFolder:
         print("No <indir> option")
         sys.exit(2)
     elif not outputFolder:
         print("No <outdir> option")
         sys.exit(2)
-    return inputFolder, outputFolder, showPlot, processMasks
+    return inputFolder, outputFolder, showPlot, processMasks, outSize
 
 
 def main(argv):
     """Execute all."""
-    inputFolder, outputFolder, showPlot, processMasks = parseProgramArgs(argv)
+    inputFolder, outputFolder, showPlot, processMasks, outSize = parseProgramArgs(argv)
 
     allBounds = []  # will store bounds dictionary
     allCentroids = []  # centroids in order of bounds
@@ -98,8 +102,12 @@ def main(argv):
     # %% Process images
     recWidth = pmed['Width']['75']  # use 75% quartile size
     recHeight = pmed['Height']['75']
-    # length of edge of all images (square) - larger one among selected quartile for width and height
-    edge = np.round(np.max([recWidth, recHeight]))
+    if not outSize:
+        # length of edge of all images (square) - larger one among selected quartile for width and height
+        edge = np.round(np.max([recWidth, recHeight]))
+    else:
+        print("Use provided size", outSize)
+        edge = int(outSize)
     counters = {'rescaled': 0, 'padded': 0}  # number of rescaled and padded frames
     for count, image in enumerate(allImages):
         # compute indexes of bounding box from QCONF data
