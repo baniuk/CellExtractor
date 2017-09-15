@@ -77,20 +77,28 @@ class ScanQconf:
 
     def getAll(self):
         """
-        Return bounds, centroinds and imagename.
+        Return bounds, centroinds and imagename and frame indexes.
 
         Imgage name is returned as array of size of bounds and
         centroids to ease further access.
 
         Returns:
-            tuple of (bounds, centroids, image name)
+            tuple of (bounds, centroids, image name, frames)
 
         """
         b = self.getBounds()
         c = self.getCentroid()
         n = [self.getImageName()] * len(b)
 
-        return b, c, n
+        # number of SnakeHandler
+        sHN = len(self.getSnakeHandler())
+        # number of frames
+        fN = self.getNumFrames()
+        f = []
+        for s in range(0, sHN):
+            f.extend(list(range(1, fN + 1)))  # produce frame indexes [1,2,3,4...N, 1,2,3,4,....N] for each snake
+
+        return b, c, n, f
 
     def __iteratreOver(self, key):
         """

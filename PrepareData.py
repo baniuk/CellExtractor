@@ -70,13 +70,12 @@ def main(argv):
     for qconf in fileList:
         sq = ScanQconf(qconf)  # analyse qconf
         sq.getFileInfo()  # print info
-        b, c, n = sq.getAll()  # outputs are dicts
+        b, c, n, f = sq.getAll()  # outputs are dicts and lists
         allBounds.extend(b)  # collect bounds for this file (all snakes)
         allCentroids.extend(c)  # colect centroids
         # colect image name from Qconf (repeated for each QCONF)
         allImages.extend(n)
-        allFrameId.extend(np.linspace(1, sq.getNumFrames(),
-                                      sq.getNumFrames(), dtype="int"))  # frame range 1...N
+        allFrameId.extend(f)  # frame range 1...N
 
     # convert bounds to array [x y width height]
     bounds = []
