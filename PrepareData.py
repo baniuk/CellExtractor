@@ -11,17 +11,18 @@ from imagefitting import process
 from scanqconf import ScanQconf
 from os import path
 from skimage import io
+from nameresolver import resolveNames
 
 
 def parseProgramArgs(argv):
     """Parse cmd."""
     inputFolder = ''
-    outputFolder = ''
+    outputFolder = './out'
     showPlot = False
-    processMasks = False
+    processTails = ()  # process only image pointed in QCONF
     outSize = None
     try:
-        opts, args = getopt.getopt(argv, "hpmi:o:s:", ["indir=", "outdir=", "size="])
+        opts, args = getopt.getopt(argv, "hpt:i:o:s:", ["indir=", "outdir=", "size="])
     except getopt.GetoptError as err:
         print("preparedata.py -i <inputfolder> -o <outputfolder>")
         print(err)
@@ -30,9 +31,14 @@ def parseProgramArgs(argv):
         if opt == '-h':
             print("preparedata.py -i <inputfolder> -o <outputfolder>")
             print("\t -h\tShow help")
-            print("\t -p\tShow size distribution")
-            print("\t -m\tProcess snakemasks")
+            print("\t -p\tShow size distribution and exit")
+            print("\t -t\tProcess all images within one QCONF that end with list of tails (comma separated)")
             print("\t -s,--size=\tSize of output images")
+            print("By default program processes images referenced in QCONFs (everything must be in the same folder)")
+            print("and saves cut cells in output folder (default ./out). If there are more images related to one QCONF")
+            print("e.g. masks, other channels etc. they can be processed all together. Naming convenction in important")
+            print("All images must have common basename and they can differ only in last charakters.")
+            print("User should use -t option providing all endings (for image referenced in QCONF as well).")
             sys.exit()
         elif opt in ("-i", "--indir"):
             inputFolder = arg
@@ -40,22 +46,19 @@ def parseProgramArgs(argv):
             outputFolder = arg
         elif opt == "-p":
             showPlot = True
-        elif opt == "-m":
-            processMasks = True
+        elif opt == "-t":
+            processTails = tuple(arg.split(','))
         elif opt in ("-s", "--size"):
             outSize = arg
     if not inputFolder:
         print("No <indir> option")
         sys.exit(2)
-    elif not outputFolder:
-        print("No <outdir> option")
-        sys.exit(2)
-    return inputFolder, outputFolder, showPlot, processMasks, outSize
+    return inputFolder, outputFolder, showPlot, processTails, outSize
 
 
 def main(argv):
     """Execute all."""
-    inputFolder, outputFolder, showPlot, processMasks, outSize = parseProgramArgs(argv)
+    inputFolder, outputFolder, showPlot, processTails, outSize = parseProgramArgs(argv)
 
     allBounds = []  # will store bounds dictionary
     allCentroids = []  # centroids in order of bounds
@@ -89,14 +92,17 @@ def main(argv):
     pmed = pandas.DataFrame(med, columns=['Width', 'Height'], index=[
                             '25', '50', '75'])  # convert to tables
     pbounds = pandas.DataFrame(bounds[:, (2, 3)], columns=['Width', 'Height'])
-    if showPlot:
-        pbounds.plot.box()
-        plt.show()
 
     # %% Compute range of data
     ranges = pandas.DataFrame(pbounds.min(), columns=['min'])
     ranges['max'] = pandas.DataFrame(pbounds.max(), columns=['max'])
     ranges = ranges.T  # transpose to have same orientation as med
+    if showPlot:
+        pbounds.plot.box()
+        print(pmed)
+        print(ranges)
+        plt.show()
+        sys.exit(0)
 
     # %% Process images
     recWidth = pmed['Width']['75']  # use 75% quartile size
@@ -108,6 +114,8 @@ def main(argv):
         print("Use provided size", outSize)
         edge = int(outSize)
     counters = {'rescaled': 0, 'padded': 0}  # number of rescaled and padded frames
+    prevProcessed = None  # skip loading same stack many times
+    # iterate over collected frames, boundaries, cells
     for count, image in enumerate(allImages):
         # compute indexes of bounding box from QCONF data
         frame = allFrameId[count]
@@ -115,27 +123,29 @@ def main(argv):
         width = startx + allBounds[count]['width']
         starty = allBounds[count]['y']
         height = starty + allBounds[count]['height']
-        # assumes images in the same folder as QCONF regardless path in QCONF
-        absImagePath = path.join(inputFolder, path.basename(image))
-        im = io.imread(absImagePath)  # im is ordered [slices x y]
-        print("Processing", path.basename(image), im.shape, "frame", frame,  sep=' ', end='', flush=True)
-        # main image processing - cutting and scalling cels
-        cutCell = process(im[frame - 1], (startx, starty, width, height), counters, edge)
-        outFileName = path.join(outputFolder, path.basename(image) + "_" + str(count) + ".png")
-        io.imsave(outFileName, cutCell)
-        # optional processing of _snakemask
-        if processMasks:
-            absMaskPath = path.join(inputFolder, path.splitext(path.basename(image))[0] + "_snakemask.tif")
-            ma = io.imread(absMaskPath)
-            cutMask = process(ma[frame - 1], (startx, starty, width, height), None, edge)
-            outFileName = path.join(outputFolder, "mask_" + path.basename(image) + "_" + str(count) + ".png")
-            io.imsave(outFileName, cutMask)
-        print("")
-    print(pmed)
-    print(ranges)
+        # check is there are more images to process for one QCONF (user conf)
+        subimages = resolveNames(path.basename(image), processTails)  # use qconf image to get base name
+        # load stacks only once (image from all Images is repeated fro each frame)
+        if path.basename(image) != prevProcessed:  # load only if new image appears
+            print("Load next stacks")
+            prevProcessed = path.basename(image)
+            # assumes images in the same folder as QCONF regardless path in QCONF
+            im = []  # all images within one qconf will be loaded
+            for subimage in subimages:
+                absImagePath = path.join(inputFolder, subimage)
+                im.append(io.imread(absImagePath))  # im is ordered [slices x y]
+        # process all images (or only original if processTails was empty)
+        for countsubimage, subimage in enumerate(subimages):
+            print("Processing", path.basename(subimage), im[countsubimage].shape, "frame", frame,  sep=' ', end='', flush=True)
+            # main image processing - cutting and scalling cels
+            cutCell = process(im[countsubimage][frame - 1], (startx, starty, width, height), counters, edge)
+            outFileName = path.join(outputFolder, path.basename(subimage) + "_" + str(count) + ".png")
+            io.imsave(outFileName, cutCell)
+            print("")
+    print(repr(counters['rescaled'] / len(processTails)) + '/' + repr(count + 1) + " were rescaled, " +
+          repr(counters['padded'] / len(processTails)) + '/' + repr(count + 1) + " were padded")
     print("Selected image size: ", edge)
-    print(repr(counters['rescaled']) + '/' + repr(count + 1) + " were rescaled, " +
-          repr(counters['padded']) + '/' + repr(count + 1) + " were padded")
+    print("Subimages processed: ", processTails)
 
 
 if __name__ == "__main__":
