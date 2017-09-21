@@ -22,19 +22,44 @@ def pad(image, edge):
     """
     rows = edge - image.shape[0]
     cols = edge - image.shape[1]
-
-    if (rows, cols) < (0, 0):
-        print("Warning, image larger than requested box, scale first")
+    if any(i < 0 for i in (rows, cols)):
+        print("\nWarning, image larger than requested box, scale first")
         return image
-
     rowsup = int(numpy.round(rows / 2))  # rows above
     rowsdown = int(rows - rowsup)  # rows below - may be different that above
-
     colsup = int(numpy.round(cols / 2))
     colsdown = int(cols - colsup)
+    return numpy.pad(image, ((rowsup, rowsdown), (colsup, colsdown)), 'constant', constant_values=(0))
 
-    return numpy.pad(image, ((rowsup, rowsdown), (colsup, colsdown)),
-                     'constant', constant_values=(0))
+
+def process(im, size, counters, edge):
+    """Process image cutting cells and adjusting size of of them.
+
+    Args:
+        im - full image to process
+        size - (startx, starty, width, height) - bounding box for cell
+        counters - {'padded': , 'rescaled'} - numbers that are increased during method call. Dict is referenced.
+                    USe None if not needed.
+        edge - demanded size of output image
+
+    Returns:
+        (cell)
+
+    """
+    # cut cell (not scaled yet, only QCONF data)
+    cutCell = im[size[1]:size[3], size[0]:size[2]]
+    # compare with demanded size
+    if any(i > edge for i in cutCell.shape):
+        cutCell = rescale(cutCell, edge)
+        if counters:
+            counters["rescaled"] += 1
+        print(" [RESCALED]", sep=' ', end='', flush=True)
+    else:
+        cutCell = pad(cutCell, edge)
+        if counters:
+            counters['padded'] += 1
+        print(" [PADDED]", sep=' ', end='', flush=True)
+    return cutCell
 
 
 class PadTests(unittest.TestCase):
