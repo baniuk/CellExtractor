@@ -1,7 +1,7 @@
 """
 Resolve names of QuimP files.
 
-By default QuimP is run on certain file and then outputed configuraiton file (QCONF) inherits that name. Image is also
+By default QuimP is run on certain file and then outputted configuration file (QCONF) inherits that name. Image is also
 remembered inside QCONF. But there is still possibility to use configuration file with other images from the same
 experiment (e.g different dye) if they have the same geometry.
 

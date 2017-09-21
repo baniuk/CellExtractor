@@ -39,7 +39,7 @@ def process(im, size, counters, edge):
         im - full image to process
         size - (startx, starty, width, height) - bounding box for cell
         counters - {'padded': , 'rescaled'} - numbers that are increased during method call. Dict is referenced.
-                    USe None if not needed.
+                    Use None if not needed.
         edge - demanded size of output image
 
     Returns:
