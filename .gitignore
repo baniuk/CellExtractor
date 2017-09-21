@@ -1,22 +1,3 @@
-Skip to content
-This repository
-Search
-Pull requests
-Issues
-Marketplace
-Gist
- @CellDynamics
- Sign out
- Watch 2,108
-  Star 52,005
-  Fork 22,398 github/gitignore
- Code  Pull requests 152  Projects 0 Insights
-Branch: master Find file Copy pathgitignore/Python.gitignore
-252058e  on 22 May
-@jwg4 jwg4 Consolidate all environments in one section
-59 contributors @arcresu @Metallicow @shiftkey @misaelnieto @pmsosa @svkampen @vltr @matheussl @Lucretiel @hugovk @Harrison-G @ghisvail @EvandroLG @DSIW @toanant @Visgean @nvie @skuschel @sigo @scari @borntyping @roll @rolando @reinout @rayshan @relekang and others
-RawBlameHistory
-100 lines (79 sloc)  1.12 KB
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -116,5 +97,6 @@ ENV/
 
 # mypy
 .mypy_cache/
-Contact GitHub API Training Shop Blog About
-© 2017 GitHub, Inc. Terms Privacy Security Status Help
+
+# ctags
+tags
