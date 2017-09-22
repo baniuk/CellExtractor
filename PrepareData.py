@@ -21,8 +21,9 @@ def parseProgramArgs(argv):
     showPlot = False
     processTails = ()  # process only image pointed in QCONF
     outSize = None
+    useBckg = False  # use cell background from image (not 0)
     try:
-        opts, args = getopt.getopt(argv, "hpt:i:o:s:", ["indir=", "outdir=", "size="])
+        opts, args = getopt.getopt(argv, "hpgt:i:o:s:", ["indir=", "outdir=", "size="])
     except getopt.GetoptError as err:
         print("preparedata.py -i <inputfolder> -o <outputfolder>")
         print(err)
@@ -34,6 +35,7 @@ def parseProgramArgs(argv):
             print("\t -p\tShow size distribution and exit")
             print("\t -t\tProcess all images within one QCONF that end with list of tails (comma separated)")
             print("\t -s,--size=\tSize of output images")
+            print("\t -g\tDo not pad by zeros, try to use background from image (cell surroundings)")
             print("By default program processes images referenced in QCONFs (everything must be in the same folder)")
             print("and saves cut cells in output folder (default ./out). If there are more images related to one QCONF")
             print("e.g. masks, other channels etc. they can be processed all together. Naming convention is important")
@@ -46,6 +48,8 @@ def parseProgramArgs(argv):
             outputFolder = arg
         elif opt == "-p":
             showPlot = True
+        elif opt == "-g":
+            useBckg = True
         elif opt == "-t":
             processTails = tuple(arg.split(','))
         elif opt in ("-s", "--size"):
@@ -53,17 +57,17 @@ def parseProgramArgs(argv):
     if not inputFolder:
         print("No <indir> option")
         sys.exit(2)
-    return inputFolder, outputFolder, showPlot, processTails, outSize
+    return inputFolder, outputFolder, showPlot, processTails, outSize, useBckg
 
 
 def main(argv):
     """
-    Main runner.
+    Run program.
 
     see: preparedata.py -h
 
     """
-    inputFolder, outputFolder, showPlot, processTails, outSize = parseProgramArgs(argv)
+    inputFolder, outputFolder, showPlot, processTails, outSize, useBckg = parseProgramArgs(argv)
 
     allBounds = []  # will store bounds dictionary
     allCentroids = []  # centroids in order of bounds
@@ -124,10 +128,6 @@ def main(argv):
     for count, image in enumerate(allImages):
         # compute indexes of bounding box from QCONF data
         frame = allFrameId[count]
-        startx = allBounds[count]['x']
-        width = startx + allBounds[count]['width']
-        starty = allBounds[count]['y']
-        height = starty + allBounds[count]['height']
         # check is there are more images to process for one QCONF (user conf)
         subimages = resolveNames(path.basename(image), processTails)  # use qconf image to get base name
         # load stacks only once (image from all Images is repeated fro each frame)
@@ -144,12 +144,19 @@ def main(argv):
             print("Processing", path.basename(subimage),
                   im[countsubimage].shape, "frame", frame,  sep=' ', end='', flush=True)
             # main image processing - cutting and scalling cels
-            cutCell = process(im[countsubimage][frame - 1], (startx, starty, width, height), counters, edge)
+            cutCell = process(im[countsubimage][frame - 1],
+                              (allBounds[count]['x'], allBounds[count]['y'],
+                               allBounds[count]['width'],
+                               allBounds[count]['height']),
+                              counters,
+                              edge,
+                              useBckg)
             outFileName = path.join(outputFolder, path.basename(subimage) + "_" + str(count) + ".png")
             io.imsave(outFileName, cutCell)
             print("")
-    print(repr(counters['rescaled'] / len(processTails)) + '/' + repr(count + 1) + " were rescaled, " +
-          repr(counters['padded'] / len(processTails)) + '/' + repr(count + 1) + " were padded")
+    processedTails = 1 if len(processTails) == 0 else len(processTails)
+    print(repr(int(counters['rescaled'] / processedTails)) + '/' + repr(count + 1) + " were rescaled, " +
+          repr(int(counters['padded'] / processedTails)) + '/' + repr(count + 1) + " were padded")
     print("Selected image size: ", edge)
     print("Subimages processed: ", processTails)
 
