@@ -22,8 +22,9 @@ def parseProgramArgs(argv):
     processTails = ()  # process only image pointed in QCONF
     outSize = None
     useBckg = False  # use cell background from image (not 0)
+    randomizeFileNames = False
     try:
-        opts, args = getopt.getopt(argv, "hpgt:i:o:s:", ["indir=", "outdir=", "size="])
+        opts, args = getopt.getopt(argv, "hpgrt:i:o:s:", ["indir=", "outdir=", "size="])
     except getopt.GetoptError as err:
         print("preparedata.py -i <inputfolder> -o <outputfolder>")
         print(err)
@@ -36,6 +37,7 @@ def parseProgramArgs(argv):
             print("\t -t\tProcess all images within one QCONF that end with list of tails (comma separated)")
             print("\t -s,--size=\tSize of output images")
             print("\t -g\tDo not pad by zeros, try to use background from image (cell surroundings)")
+            print("\t -r\tRandomize output file name (e.g XXX_Y.png, where XXX is global number and Y tail number)")
             print("By default program processes images referenced in QCONFs (everything must be in the same folder)")
             print("and saves cut cells in output folder (default ./out). If there are more images related to one QCONF")
             print("e.g. masks, other channels etc. they can be processed all together. Naming convention is important")
@@ -52,12 +54,14 @@ def parseProgramArgs(argv):
             useBckg = True
         elif opt == "-t":
             processTails = tuple(arg.split(','))
+        elif opt == "-r":
+            randomizeFileNames = True
         elif opt in ("-s", "--size"):
             outSize = arg
     if not inputFolder:
         print("No <indir> option")
         sys.exit(2)
-    return inputFolder, outputFolder, showPlot, processTails, outSize, useBckg
+    return inputFolder, outputFolder, showPlot, processTails, outSize, useBckg, randomizeFileNames
 
 
 def main(argv):
@@ -67,7 +71,7 @@ def main(argv):
     see: preparedata.py -h
 
     """
-    inputFolder, outputFolder, showPlot, processTails, outSize, useBckg = parseProgramArgs(argv)
+    inputFolder, outputFolder, showPlot, processTails, outSize, useBckg, randomizeFileNames = parseProgramArgs(argv)
 
     allBounds = []  # will store bounds dictionary
     allCentroids = []  # centroids in order of bounds
@@ -151,7 +155,10 @@ def main(argv):
                               counters,
                               edge,
                               useBckg)
-            outFileName = path.join(outputFolder, path.basename(subimage) + "_" + str(count) + ".png")
+            if randomizeFileNames is True:
+                outFileName = path.join(outputFolder, str(count) + "_" + str(countsubimage) + ".png")
+            else:
+                outFileName = path.join(outputFolder, path.basename(subimage) + "_" + str(count) + ".png")
             io.imsave(outFileName, cutCell)
             print("")
     processedTails = 1 if len(processTails) == 0 else len(processTails)
