@@ -1,13 +1,13 @@
 """
 Resolve names of QuimP files.
 
-By default QuimP is run on certain file and then outputted configuration file (QCONF) inherits that name. Image is also
+By default QuimP is run on certain file and then outputed configuraiton file (QCONF) inherits that name. Image is also
 remembered inside QCONF. But there is still possibility to use configuration file with other images from the same
-experiment (e.g different dye) if they have the same geometry.
+experiment (e.g different dye).
 
-This package generates possible names of images using base name and expected tails given by user. Base name must contain
-one of tails already. Typically base name should be the QCONF filename or name of image referenced in it. E.g: There are
-following files in folder:
+This package resolves core name of file using expected tails given by user. One if them must be ending from original
+tiff. E.g:
+There are following files in folder:
 KZ4-220214-ABD-GFP-dev6h-agar2+TRITC-2.lsm
 KZ4-220214-ABD-GFP-dev6h-agar2+TRITC-2.lsm_CH_1.pgQP
 KZ4-220214-ABD-GFP-dev6h-agar2+TRITC-2.lsm_CH_1.QCONF
@@ -17,13 +17,9 @@ KZ4-220214-ABD-GFP-dev6h-agar2+TRITC-2.lsm_CH_1_snakemask.tif
 KZ4-220214-ABD-GFP-dev6h-agar2+TRITC-2.lsm_CH_2.tif
 KZ4-220214-ABD-GFP-dev6h-agar2+TRITC-2.lsm_CH_DIC.tif
 
-resolveNames(KZ4-220214-ABD-GFP-dev6h-agar2+TRITC-2.lsm_CH_1.QCONF, ("_CH_1","_CH_DIC")) will return names:
-KZ4-220214-ABD-GFP-dev6h-agar2+TRITC-2.lsm_CH_1.tif
-KZ4-220214-ABD-GFP-dev6h-agar2+TRITC-2.lsm_CH_DIC.tif
-
-All image files should inherit common base and different endings: _CH_1, _CH_2, _CH_1_snakemask,....
-User must provide all expected endings and (obligatory) that one that is contained in basename passed to method.
-Providing empty tail list will return full base name as passed to method.
+Images from the same experiments differ in endings: _CH_1, _CH_2, _CH_1_snakemask,.... The _CH_1 is that original one.
+User must provide all expected endings with the original one. Method will use first provided to guess corename and then
+add all remainaings to generate expected file list.
 """
 
 import os
@@ -41,7 +37,7 @@ def resolveNames(qconfname, tails):
                 If there is no extension, .tif is added
 
     Return:
-        List of file names coreTail.tif (in order as they appeared in tails) or qconfname if tails are empty
+        List of file names coreTail.ext (in order from tails) or qconfname if tails are empty
     """
     if not tails:
         return (qconfname,)
@@ -68,7 +64,6 @@ def resolveNames(qconfname, tails):
         else:
             ext = ''
         ret.append(basename + tail + ext)
-
     return tuple(ret)
 
 

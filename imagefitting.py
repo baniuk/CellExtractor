@@ -53,7 +53,7 @@ def cut(image, size, edge):
         starty -= (round((edge - size[3]) / 2) - 1)
         endx = startx + edge
         endy = starty + edge
-    else:  # sut as bounding box says
+    else:  # cut as bounding box says
         endx = startx + size[2]
         endy = starty + size[3]
 
@@ -91,6 +91,7 @@ def process(im, size, counters, edge, trueBackground=False):
     Returns:
         (cell)
 
+
     """
     # cut cell (not scaled yet, only QCONF data)
     if trueBackground:
@@ -103,7 +104,7 @@ def process(im, size, counters, edge, trueBackground=False):
         if counters:
             counters["rescaled"] += 1
         print(" [RESCALED]", sep=' ', end='', flush=True)
-    elif any(i < edge for i in cutCell.shape):  # if trueBackground==True output can be smaller anf then is padded
+    elif any(i < edge for i in cutCell.shape):  # if trueBackground==True output can be smaller and then is padded
         cutCell = pad(cutCell, edge)
         if counters:
             counters['padded'] += 1

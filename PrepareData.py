@@ -22,8 +22,9 @@ def parseProgramArgs(argv):
     processTails = ()  # process only image pointed in QCONF
     outSize = None
     useBckg = False  # use cell background from image (not 0)
+    randomizeFileNames = False
     try:
-        opts, args = getopt.getopt(argv, "hpgt:i:o:s:", ["indir=", "outdir=", "size="])
+        opts, args = getopt.getopt(argv, "hpgrt:i:o:s:", ["indir=", "outdir=", "size="])
     except getopt.GetoptError as err:
         print("preparedata.py -i <inputfolder> -o <outputfolder>")
         print(err)
@@ -36,11 +37,13 @@ def parseProgramArgs(argv):
             print("\t -t\tProcess all images within one QCONF that end with list of tails (comma separated)")
             print("\t -s,--size=\tSize of output images")
             print("\t -g\tDo not pad by zeros, try to use background from image (cell surroundings)")
+            print("\t -r\tRandomize output file name (e.g XXX_Y.png, where XXX is global number and Y tail number)")
             print("By default program processes images referenced in QCONFs (everything must be in the same folder)")
             print("and saves cut cells in output folder (default ./out). If there are more images related to one QCONF")
-            print("e.g. masks, other channels etc. they can be processed all together. Naming convention is important")
+            print("e.g. masks, other channels etc. they can be processed all together. Naming convenction in important")
             print("All images must have common basename and they can differ only in last characters.")
             print("User should use -t option providing all endings (for image referenced in QCONF as well).")
+            print("python PrepareData.py -s 256 -i \"FLU+DIC\" -o \"FLU+DIC/out\" -t '_CH_1,_CH_1_snakemask,_CH_DIC'")
             sys.exit()
         elif opt in ("-i", "--indir"):
             inputFolder = arg
@@ -52,12 +55,14 @@ def parseProgramArgs(argv):
             useBckg = True
         elif opt == "-t":
             processTails = tuple(arg.split(','))
+        elif opt == "-r":
+            randomizeFileNames = True
         elif opt in ("-s", "--size"):
             outSize = arg
     if not inputFolder:
         print("No <indir> option")
         sys.exit(2)
-    return inputFolder, outputFolder, showPlot, processTails, outSize, useBckg
+    return inputFolder, outputFolder, showPlot, processTails, outSize, useBckg, randomizeFileNames
 
 
 def main(argv):
@@ -67,7 +72,7 @@ def main(argv):
     see: preparedata.py -h
 
     """
-    inputFolder, outputFolder, showPlot, processTails, outSize, useBckg = parseProgramArgs(argv)
+    inputFolder, outputFolder, showPlot, processTails, outSize, useBckg, randomizeFileNames = parseProgramArgs(argv)
 
     allBounds = []  # will store bounds dictionary
     allCentroids = []  # centroids in order of bounds
@@ -122,6 +127,7 @@ def main(argv):
     else:
         print("Use provided size", outSize)
         edge = int(outSize)
+    print("Selected image size: ", edge)
     counters = {'rescaled': 0, 'padded': 0}  # number of rescaled and padded frames
     prevProcessed = None  # skip loading same stack many times
     # iterate over collected frames, boundaries, cells
@@ -141,17 +147,20 @@ def main(argv):
                 im.append(io.imread(absImagePath))  # im is ordered [slices x y]
         # process all images (or only original if processTails was empty)
         for countsubimage, subimage in enumerate(subimages):
-            print("Processing", path.basename(subimage),
-                  im[countsubimage].shape, "frame", frame,  sep=' ', end='', flush=True)
+            print("Processing", path.basename(subimage), im[countsubimage].shape, "frame", frame,  sep=' ', end='', flush=True)
             # main image processing - cutting and scalling cels
             cutCell = process(im[countsubimage][frame - 1],
-                              (allBounds[count]['x'], allBounds[count]['y'],
+                              (allBounds[count]['x'],
+                               allBounds[count]['y'],
                                allBounds[count]['width'],
                                allBounds[count]['height']),
                               counters,
                               edge,
                               useBckg)
-            outFileName = path.join(outputFolder, path.basename(subimage) + "_" + str(count) + ".png")
+            if randomizeFileNames is True:
+                outFileName = path.join(outputFolder, str(count) + "_" + str(countsubimage) + ".png")
+            else:
+                outFileName = path.join(outputFolder, path.basename(subimage) + "_" + str(count) + ".png")
             io.imsave(outFileName, cutCell)
             print("")
     processedTails = 1 if len(processTails) == 0 else len(processTails)
