@@ -40,9 +40,10 @@ def parseProgramArgs(argv):
             print("\t -r\tRandomize output file name (e.g XXX_Y.png, where XXX is global number and Y tail number)")
             print("By default program processes images referenced in QCONFs (everything must be in the same folder)")
             print("and saves cut cells in output folder (default ./out). If there are more images related to one QCONF")
-            print("e.g. masks, other channels etc. they can be processed all together. Naming convention is important")
+            print("e.g. masks, other channels etc. they can be processed all together. Naming convenction in important")
             print("All images must have common basename and they can differ only in last characters.")
             print("User should use -t option providing all endings (for image referenced in QCONF as well).")
+            print("python PrepareData.py -s 256 -i \"FLU+DIC\" -o \"FLU+DIC/out\" -t '_CH_1,_CH_1_snakemask,_CH_DIC'")
             sys.exit()
         elif opt in ("-i", "--indir"):
             inputFolder = arg
@@ -126,6 +127,7 @@ def main(argv):
     else:
         print("Use provided size", outSize)
         edge = int(outSize)
+    print("Selected image size: ", edge)
     counters = {'rescaled': 0, 'padded': 0}  # number of rescaled and padded frames
     prevProcessed = None  # skip loading same stack many times
     # iterate over collected frames, boundaries, cells
@@ -145,11 +147,11 @@ def main(argv):
                 im.append(io.imread(absImagePath))  # im is ordered [slices x y]
         # process all images (or only original if processTails was empty)
         for countsubimage, subimage in enumerate(subimages):
-            print("Processing", path.basename(subimage),
-                  im[countsubimage].shape, "frame", frame,  sep=' ', end='', flush=True)
+            print("Processing", path.basename(subimage), im[countsubimage].shape, "frame", frame,  sep=' ', end='', flush=True)
             # main image processing - cutting and scalling cels
             cutCell = process(im[countsubimage][frame - 1],
-                              (allBounds[count]['x'], allBounds[count]['y'],
+                              (allBounds[count]['x'],
+                               allBounds[count]['y'],
                                allBounds[count]['width'],
                                allBounds[count]['height']),
                               counters,
