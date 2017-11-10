@@ -36,7 +36,8 @@ def parseProgramArgs(argv):
             print("\t -p\tShow size distribution and exit")
             print("\t -t\tProcess all images within one QCONF that end with list of tails (comma separated)")
             print("\t -s,--size=\tSize of output images")
-            print("\t -g\tDo not pad by zeros, try to use background from image (cell surroundings)")
+            print("\t -g\tDo not pad by zeros, try to use background from image (cell surroundings). If necessary")
+            print("pad by edge value (if cell is close to image edge)")
             print("\t -r\tRandomize output file name (e.g XXX_Y.png, where XXX is global number and Y tail number)")
             print("By default program processes images referenced in QCONFs (everything must be in the same folder)")
             print("and saves cut cells in output folder (default ./out). If there are more images related to one QCONF")
@@ -157,7 +158,8 @@ def main(argv):
                 im.append(io.imread(absImagePath))  # im is ordered [slices x y]
         # process all images (or only original if processTails was empty)
         for countsubimage, subimage in enumerate(subimages):
-            print("Processing", path.basename(subimage), im[countsubimage].shape, "frame", frame,  sep=' ', end='', flush=True)
+            print("Processing", path.basename(subimage),
+                  im[countsubimage].shape, "frame", frame,  sep=' ', end='', flush=True)
             # main image processing - cutting and scalling cels
             cutCell = process(im[countsubimage][frame - 1],
                               (allBounds[count]['x'],

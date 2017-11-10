@@ -4,6 +4,8 @@ import numpy
 import scipy.misc
 import unittest
 
+def_pad_value = 0
+
 
 def rescale(image, edge):
     """Rescale and pads image to get [edge, edge] size."""
@@ -14,9 +16,11 @@ def rescale(image, edge):
     return pad(res, edge)
 
 
-def pad(image, edge):
+def pad(image, edge, mode, **kwargs):
     """
     Pad smaller image to get [edge, edge] size.
+
+    mode, **kwargs - see numpy.pad
 
     Pads with zeros.
     """
@@ -29,7 +33,7 @@ def pad(image, edge):
     rowsdown = int(rows - rowsup)  # rows below - may be different that above
     colsup = int(numpy.round(cols / 2))
     colsdown = int(cols - colsup)
-    return numpy.pad(image, ((rowsup, rowsdown), (colsup, colsdown)), 'constant', constant_values=(0))
+    return numpy.pad(image, ((rowsup, rowsdown), (colsup, colsdown)), mode, **kwargs)
 
 
 def cut(image, size, edge):
@@ -79,6 +83,8 @@ def cut(image, size, edge):
 def process(im, size, counters, edge, trueBackground=False):
     """Process image cutting cells and adjusting size of them.
 
+    If trueBackground==True, mean value is used for padding.
+
     Args:
         im - full image to process
         size - (startx, starty, width, height) - bounding box for cell, coordinates can lay outside image dimensions
@@ -105,7 +111,10 @@ def process(im, size, counters, edge, trueBackground=False):
             counters["rescaled"] += 1
         print(" [RESCALED]", sep=' ', end='', flush=True)
     elif any(i < edge for i in cutCell.shape):  # if trueBackground==True output can be smaller and then is padded
-        cutCell = pad(cutCell, edge)
+        if trueBackground:
+            cutCell = pad(cutCell, edge, 'edge')
+        else:
+            cutCell = pad(cutCell, edge, 'constant', constant_values=def_pad_value)
         if counters:
             counters['padded'] += 1
         print(" [PADDED]", sep=' ', end='', flush=True)
@@ -122,13 +131,13 @@ class PadTests(unittest.TestCase):
     def testOne(self):
         """Test if larger input is produced on output."""
         rr = numpy.random.rand(10, 11)
-        out = pad(rr, 10)
+        out = pad(rr, 10, 'constant', constant_values=def_pad_value)
         self.assertTupleEqual(rr.shape, out.shape)
 
     def testTwo(self):
         """Test if smaller input is padded on output."""
         rr = numpy.random.rand(7, 6)
-        out = pad(rr, 10)
+        out = pad(rr, 10, 'constant', constant_values=def_pad_value)
         self.assertTupleEqual(out.shape, (10, 10))
 
     def testRescale(self):
