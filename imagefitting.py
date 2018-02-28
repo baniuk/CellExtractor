@@ -112,7 +112,7 @@ def process(im, size, counters, edge, trueBackground=False):
         print(" [RESCALED]", sep=' ', end='', flush=True)
     elif any(i < edge for i in cutCell.shape):  # if trueBackground==True output can be smaller and then is padded
         if trueBackground:
-            cutCell = pad(cutCell, edge, 'edge')
+            cutCell = pad(cutCell, edge, 'reflect')
         else:
             cutCell = pad(cutCell, edge, 'constant', constant_values=def_pad_value)
         if counters:
